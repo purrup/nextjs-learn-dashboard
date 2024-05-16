@@ -1,4 +1,4 @@
-const { db } = require('@vercel/postgres');
+const { createClient, db } = require('@vercel/postgres');
 const {
   invoices,
   customers,
@@ -6,6 +6,8 @@ const {
   users,
 } = require('../app/lib/placeholder-data.js');
 const bcrypt = require('bcrypt');
+require('dotenv').config();
+
 
 async function seedUsers(client) {
   try {
@@ -161,14 +163,23 @@ async function seedRevenue(client) {
 }
 
 async function main() {
-  const client = await db.connect();
+  try {
+    const client = createClient({
+      url: process.env.POSTGRES_URL_NON_POOLING,
+    });
 
-  await seedUsers(client);
-  await seedCustomers(client);
-  await seedInvoices(client);
-  await seedRevenue(client);
+    await client.connect();
 
-  await client.end();
+    await seedUsers(client);
+    await seedCustomers(client);
+    await seedInvoices(client);
+    await seedRevenue(client);
+
+    await client.end();
+    console.log('Database seeded successfully');
+  } catch (error) {
+    console.error('Error connecting to the database:', error);
+  }
 }
 
 main().catch((err) => {
